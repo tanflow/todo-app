@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        HOST = "localhost"          // Change to your VM IP (e.g., 13.x.x.x)
-        PORT = "2222"               // SSH port
-        USER = "raj"                // VM username
+        HOST = "localhost"   // change if needed
+        PORT = "2222"
+        USER = "raj"
         REPO = "https://github.com/tanflow/todo-app.git"
     }
 
@@ -12,46 +12,41 @@ pipeline {
 
         stage('Deploy to VM') {
             steps {
-                sshagent(['vm-ssh-key']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no -p $PORT $USER@$HOST << 'EOF'
+                sh """
+                ssh -o StrictHostKeyChecking=no -p $PORT $USER@$HOST << 'EOF'
 
-                    set -e
+                set -e
 
-                    echo "🚀 Connected to VM"
+                echo "🚀 Connected to VM"
 
-                    # Clone repo if not exists
-                    if [ ! -d ~/todo-app ]; then
-                        git clone $REPO ~/todo-app
-                    fi
+                # Clone if not exists
+                if [ ! -d ~/todo-app ]; then
+                    git clone $REPO ~/todo-app
+                fi
 
-                    cd ~/todo-app
+                cd ~/todo-app
 
-                    echo "📥 Pulling latest code"
-                    git pull origin main
+                echo "📥 Pull latest code"
+                git pull origin main
 
-                    echo "⚙️ Installing backend dependencies"
-                    cd backend
-                    npm install
+                echo "⚙️ Backend setup"
+                cd backend
+                npm install
 
-                    echo "⚙️ Installing frontend dependencies & building"
-                    cd ../frontend
-                    npm install
-                    npm run build
+                echo "⚙️ Frontend build"
+                cd ../frontend
+                npm install
+                npm run build
 
-                    echo "🔄 Restarting backend with PM2"
-                    pm2 delete backend-app || true
+                echo "🔄 Restart backend"
+                pm2 restart backend-app || pm2 start index.js --name backend-app
 
-                    cd ../backend
-                    pm2 start index.js --name backend-app
+                pm2 save
 
-                    pm2 save
+                echo "✅ Deployment Done"
 
-                    echo "✅ Deployment Successful"
-
-                    EOF
-                    """
-                }
+                EOF
+                """
             }
         }
     }
