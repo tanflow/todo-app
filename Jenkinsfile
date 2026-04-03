@@ -2,48 +2,44 @@ pipeline {
     agent any
 
     environment {
-        HOST = "localhost"
-        PORT = "2222"
+        HOST = "localhost"          // Change to your VM IP (e.g., 13.x.x.x)
+        PORT = "2222"               // SSH port
+        USER = "raj"                // VM username
         REPO = "https://github.com/tanflow/todo-app.git"
     }
 
     stages {
 
-        stage('Clone Code') {
-            steps {
-                git "$REPO"
-            }
-        }
-
         stage('Deploy to VM') {
             steps {
                 sshagent(['vm-ssh-key']) {
                     sh """
-                    ssh -o StrictHostKeyChecking=no -p $PORT raj@$HOST << 'EOF'
+                    ssh -o StrictHostKeyChecking=no -p $PORT $USER@$HOST << 'EOF'
 
-                    set -e   # 🚀 stop on error
+                    set -e
 
-                    echo "Connected to VM 🚀"
+                    echo "🚀 Connected to VM"
 
-                    # Clone if not exists
-                    if [ ! -d "~/todo-app" ]; then
+                    # Clone repo if not exists
+                    if [ ! -d ~/todo-app ]; then
                         git clone $REPO ~/todo-app
                     fi
 
                     cd ~/todo-app
 
+                    echo "📥 Pulling latest code"
                     git pull origin main
 
-                    # Backend setup
+                    echo "⚙️ Installing backend dependencies"
                     cd backend
                     npm install
 
-                    # Frontend setup
+                    echo "⚙️ Installing frontend dependencies & building"
                     cd ../frontend
                     npm install
                     npm run build
 
-                    # Restart backend
+                    echo "🔄 Restarting backend with PM2"
                     pm2 delete backend-app || true
 
                     cd ../backend
@@ -51,7 +47,7 @@ pipeline {
 
                     pm2 save
 
-                    echo "Deployment Done ✅"
+                    echo "✅ Deployment Successful"
 
                     EOF
                     """
