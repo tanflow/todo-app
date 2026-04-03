@@ -21,7 +21,7 @@ pipeline {
             steps {
                 script {
                     echo "📦 Installing dependencies..."
-                    bat 'npm install'
+                    bat 'npm ci --legacy-peer-deps'
                 }
             }
         }
@@ -30,7 +30,7 @@ pipeline {
             steps {
                 script {
                     echo "🔨 Building frontend..."
-                    bat 'npm run build'
+                    bat 'npx tsc -b && npx vite build'
                 }
             }
         }
