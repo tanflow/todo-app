@@ -10,7 +10,7 @@ pipeline {
 
         stage('Clone Code') {
             steps {
-                git 'https://github.com/<your-username>/todo-app.git'
+                git 'https://github.com/tanflow/todo-app.git'
             }
         }
 
