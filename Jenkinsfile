@@ -12,16 +12,15 @@ pipeline {
 
         stage('Deploy to VM') {
             steps {
-                sh """
-                ssh -o StrictHostKeyChecking=no -p $PORT $USER@$HOST << 'EOF'
-
+                powershell """
+                ssh -o StrictHostKeyChecking=no -p \$env:PORT \$env:USER@\$env:HOST @'
                 set -e
 
                 echo "🚀 Connected to VM"
 
                 # Clone if not exists
                 if [ ! -d ~/todo-app ]; then
-                    git clone $REPO ~/todo-app
+                    git clone \$REPO ~/todo-app
                 fi
 
                 cd ~/todo-app
@@ -44,8 +43,7 @@ pipeline {
                 pm2 save
 
                 echo "✅ Deployment Done"
-
-                EOF
+                '@
                 """
             }
         }
