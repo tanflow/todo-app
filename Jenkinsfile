@@ -4,13 +4,14 @@ pipeline {
     environment {
         HOST = "localhost"
         PORT = "2222"
+        REPO = "https://github.com/tanflow/todo-app.git"
     }
 
     stages {
 
         stage('Clone Code') {
             steps {
-                git 'https://github.com/tanflow/todo-app.git'
+                git "$REPO"
             }
         }
 
@@ -20,11 +21,17 @@ pipeline {
                     sh """
                     ssh -o StrictHostKeyChecking=no -p $PORT raj@$HOST << 'EOF'
 
+                    set -e   # 🚀 stop on error
+
                     echo "Connected to VM 🚀"
 
-                    cd ~/todo-app || git clone https://github.com/tanflow/todo-app.git
+                    # Clone if not exists
+                    if [ ! -d "~/todo-app" ]; then
+                        git clone $REPO ~/todo-app
+                    fi
 
                     cd ~/todo-app
+
                     git pull origin main
 
                     # Backend setup
