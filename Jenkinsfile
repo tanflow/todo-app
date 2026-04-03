@@ -13,37 +13,8 @@ pipeline {
         stage('Deploy to VM') {
             steps {
                 powershell """
-                ssh -o StrictHostKeyChecking=no -p \$env:PORT \$env:USER@\$env:HOST @'
-                set -e
-
-                echo "🚀 Connected to VM"
-
-                # Clone if not exists
-                if [ ! -d ~/todo-app ]; then
-                    git clone \$REPO ~/todo-app
-                fi
-
-                cd ~/todo-app
-
-                echo "📥 Pull latest code"
-                git pull origin main
-
-                echo "⚙️ Backend setup"
-                cd backend
-                npm install
-
-                echo "⚙️ Frontend build"
-                cd ../frontend
-                npm install
-                npm run build
-
-                echo "🔄 Restart backend"
-                pm2 restart backend-app || pm2 start index.js --name backend-app
-
-                pm2 save
-
-                echo "✅ Deployment Done"
-                '@
+                \$script = \"set -e`necho `\"🚀 Connected to VM`\"`n# Clone if not exists`nif [ ! -d ~/todo-app ]; then`n    git clone \$env:REPO ~/todo-app`nfi`ncd ~/todo-app`necho `\"📥 Pull latest code`\"`ngit pull origin main`necho `\"⚙️ Backend setup`\"`ncd backend`nnpm install`necho `\"⚙️ Frontend build`\"`ncd ../frontend`nnpm install`nnpm run build`necho `\"🔄 Restart backend`\"`npm2 restart backend-app || pm2 start index.js --name backend-app`npm2 save`necho `\"✅ Deployment Done`\"`n\"
+                ssh -o StrictHostKeyChecking=no -p \$env:PORT \$env:USER@\$env:HOST \$script
                 """
             }
         }
