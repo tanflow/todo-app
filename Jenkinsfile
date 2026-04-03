@@ -30,7 +30,7 @@ pipeline {
             steps {
                 script {
                     echo "🔨 Building frontend..."
-                    bat 'npx tsc -b && npx vite build'
+                    bat 'npm run build'
                 }
             }
         }
