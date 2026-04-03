@@ -21,7 +21,7 @@ pipeline {
             steps {
                 script {
                     echo "📦 Installing dependencies..."
-                    sh 'npm install'
+                    bat 'npm install'
                 }
             }
         }
@@ -30,7 +30,7 @@ pipeline {
             steps {
                 script {
                     echo "🔨 Building frontend..."
-                    sh 'npm run build'
+                    bat 'npm run build'
                 }
             }
         }
@@ -39,44 +39,15 @@ pipeline {
             steps {
                 script {
                     echo "🚀 Deploying to VM..."
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no -p $PORT $USER@$HOST << 'EOF'
-set -e
+                    bat '''
+                        ssh -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
+                        "mkdir -p ~/%APP_DIR% && cd ~/%APP_DIR% && rm -rf ./dist || true"
 
-echo "🚀 Connected to VM"
+                        echo Copying dist folder to VM...
+                        scp -o StrictHostKeyChecking=no -P %PORT% -r dist %USER%@%HOST%:~/%APP_DIR%/
 
-# Create app directory if not exists
-if [ ! -d ~/$APP_DIR ]; then
-    mkdir -p ~/$APP_DIR
-fi
-
-# Navigate to app directory
-cd ~/$APP_DIR
-
-echo "📂 Clearing old build..."
-rm -rf ./dist || true
-
-EOF
-
-                        # Copy dist folder to VM
-                        scp -o StrictHostKeyChecking=no -P $PORT -r ./dist $USER@$HOST:~/$APP_DIR/
-
-                        ssh -o StrictHostKeyChecking=no -p $PORT $USER@$HOST << 'EOF'
-
-cd ~/$APP_DIR
-
-echo "📋 Restarting web server..."
-# If using nginx
-sudo systemctl restart nginx 2>/dev/null || echo "Nginx not configured"
-
-# Or if using pm2 with a simple http server
-pm2 restart todo-app || pm2 start "npx http-server -p 8080 -c-1 ./dist" --name todo-app
-
-pm2 save
-
-echo "✅ Deployment Done"
-
-EOF
+                        ssh -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
+                        "cd ~/%APP_DIR% && pm2 restart todo-app || pm2 start 'npx http-server -p 8080 -c-1 ./dist' --name todo-app && pm2 save && echo Deployment Done"
                     '''
                 }
             }
