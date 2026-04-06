@@ -6,6 +6,7 @@ pipeline {
         PORT = "2222"
         USER = "raj"
         APP_DIR = "todo-app"
+        SSH_KEY = "C:\\Users\\Raj\\.ssh\\id_rsa"
     }
 
     stages {
@@ -34,22 +35,28 @@ pipeline {
             steps {
                 echo "🚀 Deploying to VM..."
 
-                bat """
-                echo Creating app directory on VM...
-                ssh -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "mkdir -p ~/%APP_DIR%"
+                timeout(time: 3, unit: 'MINUTES') {
 
-                echo Removing old build...
-                ssh -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "rm -rf ~/%APP_DIR%/dist"
+                    bat """
+                    echo ===== TESTING SSH CONNECTION =====
+                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p %PORT% %USER%@%HOST% "echo CONNECTED"
 
-                echo Copying new build...
-                scp -o StrictHostKeyChecking=no -P %PORT% -r dist %USER%@%HOST%:~/%APP_DIR%/
+                    echo ===== CREATING APP DIRECTORY =====
+                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "mkdir -p ~/%APP_DIR%"
 
-                echo Restarting app with PM2...
-                ssh -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
-                "pm2 delete todo-app || true && \
-                 pm2 start 'npx http-server -p 8080 -c-1 ~/todo-app/dist' --name todo-app && \
-                 pm2 save"
-                """
+                    echo ===== REMOVING OLD BUILD =====
+                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "rm -rf ~/%APP_DIR%/dist"
+
+                    echo ===== COPYING NEW BUILD =====
+                    scp -i %SSH_KEY% -o StrictHostKeyChecking=no -P %PORT% -r dist %USER%@%HOST%:~/%APP_DIR%/
+
+                    echo ===== RESTARTING APP WITH PM2 =====
+                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
+                    "pm2 delete todo-app || true && \
+                     pm2 start 'npx http-server -p 8080 -c-1 ~/todo-app/dist' --name todo-app && \
+                     pm2 save"
+                    """
+                }
             }
         }
     }
