@@ -52,9 +52,9 @@ pipeline {
 
                     echo ===== RESTARTING APP WITH PM2 =====
                     ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% bash -l -c ^
-                    "pm2 delete todo-app || true && \
-                     pm2 start 'npm http-server -p 8080 -c-1 ~/todo-app/dist' --name todo-app && \
-                     pm2 save"
+                    "/home/raj/.nvm/versions/node/v24.14.1/bin/pm2 delete todo-app || true && \
+                     /home/raj/.nvm/versions/node/v24.14.1/bin/pm2 start 'npx http-server -p 8080 -c-1 ~/todo-app/dist' --name todo-app && \
+                     /home/raj/.nvm/versions/node/v24.14.1/bin/pm2 save"
                     """
                 }
             }
