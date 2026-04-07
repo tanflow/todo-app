@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         HOST = "localhost"
-        PORT = "22"
+        PORT = "2222"
         USER = "raj"
         APP_DIR = "todo-app"
         SSH_KEY = "C:\\Windows\\System32\\config\\systemprofile\\.ssh\\id_rsa"
