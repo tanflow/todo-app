@@ -51,7 +51,7 @@ pipeline {
                     scp -i %SSH_KEY% -o StrictHostKeyChecking=no -P %PORT% -r dist %USER%@%HOST%:~/%APP_DIR%/
 
                     echo ===== RESTARTING APP WITH PM2 =====
-                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "/home/raj/.nvm/versions/node/v24.14.1/bin/pm2 delete todo-app || true && /home/raj/.nvm/versions/node/v24.14.1/bin/pm2 start 'npx http-server -p 8080 -c-1 ~/%APP_DIR%/dist' --name todo-app && /home/raj/.nvm/versions/node/v24.14.1/bin/pm2 save"
+                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "export PATH=/home/raj/.nvm/versions/node/v24.14.1/bin:\$PATH && pm2 delete todo-app || true && pm2 start 'npx http-server -p 8080 -c-1 ~/%APP_DIR%/dist' --name todo-app && pm2 save"
                     """
                 }
             }
