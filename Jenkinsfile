@@ -39,7 +39,7 @@ pipeline {
 
                     bat """
                     echo ===== TESTING SSH CONNECTION =====
-                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p %PORT% %USER%@%HOST% "echo CONNECTED"
+                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "echo CONNECTED"
 
                     echo ===== CREATING APP DIRECTORY =====
                     ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "mkdir -p ~/%APP_DIR%"
@@ -51,10 +51,7 @@ pipeline {
                     scp -i %SSH_KEY% -o StrictHostKeyChecking=no -P %PORT% -r dist %USER%@%HOST%:~/%APP_DIR%/
 
                     echo ===== RESTARTING APP WITH PM2 =====
-                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% bash -l -c ^
-                    "source ~/.bashrc; pm2 delete todo-app || true && ^
-                     pm2 start 'npx http-server -p 8080 -c-1 ~/todo-app/dist' --name todo-app && ^
-                     pm2 save"
+                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "pm2 delete todo-app || true && pm2 start 'npx http-server -p 8080 -c-1 ~/%APP_DIR%/dist' --name todo-app && pm2 save"
                     """
                 }
             }
