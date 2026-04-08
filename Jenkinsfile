@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "todo-app"
         CONTAINER_NAME = "todo-container"
-        PORT = "3001"
+        PORT = "4000"
     }
 
     stages {
@@ -44,7 +44,7 @@ pipeline {
     post {
         success {
             echo '✅ Deployment Successful!'
-            echo '🌐 App URL: http://localhost:3001'
+            echo '🌐 App URL: http://localhost:4000'
         }
         failure {
             echo '❌ Deployment Failed!'
