@@ -11,7 +11,8 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git 'https://github.com/tanflow/todo-app.git'
+                // ✅ Explicitly use main branch
+                git branch: 'main', url: 'https://github.com/tanflow/todo-app.git'
             }
         }
 
