@@ -2,72 +2,51 @@ pipeline {
     agent any
 
     environment {
-        HOST = "localhost"
-        PORT = "2222"
-        USER = "raj"
-        SSH_KEY = "C:\\Windows\\System32\\config\\systemprofile\\.ssh\\id_rsa"
+        IMAGE_NAME = "todo-app"
+        CONTAINER_NAME = "todo-container"
+        PORT = "3001"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                git 'https://github.com/tanflow/todo-app.git'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build Docker Image') {
             steps {
-                echo "📦 Installing dependencies..."
-                bat 'npm ci --legacy-peer-deps'
+                echo '🐳 Building Docker Image...'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
-        stage('Build') {
+        stage('Stop Old Container') {
             steps {
-                echo "🔨 Building frontend..."
-                bat 'npm run build'
+                echo '🛑 Removing old container...'
+                bat '''
+                docker stop %CONTAINER_NAME% || exit 0
+                docker rm %CONTAINER_NAME% || exit 0
+                '''
             }
         }
 
-        stage('Deploy to Nginx (VM)') {
+        stage('Run New Container') {
             steps {
-                echo "🚀 Deploying to Nginx..."
-
-                timeout(time: 5, unit: 'MINUTES') {
-
-                    bat """
-                    echo ===== TESTING SSH CONNECTION =====
-                    ssh -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "echo CONNECTED"
-
-                    echo ===== CLEANING OLD FILES =====
-                    ssh -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
-                    "sudo rm -rf /var/www/html/*"
-
-                    echo ===== COPYING NEW BUILD TO NGINX =====
-                    scp -i %SSH_KEY% -o StrictHostKeyChecking=no -P %PORT% -r dist/* %USER%@%HOST%:/tmp/
-
-                    echo ===== MOVING FILES TO NGINX DIRECTORY =====
-                    ssh -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
-                    "sudo mv /tmp/* /var/www/html/ && sudo chown -R www-data:www-data /var/www/html"
-
-                    echo ===== RESTARTING NGINX =====
-                    ssh -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
-                    "sudo systemctl restart nginx"
-
-                    echo ===== DEPLOYMENT DONE =====
-                    """
-                }
+                echo '🚀 Starting new container...'
+                bat 'docker run -d -p %PORT%:80 --name %CONTAINER_NAME% %IMAGE_NAME%'
             }
         }
     }
 
     post {
         success {
-            echo "✅ Nginx Deployment Successful 🚀"
+            echo '✅ Deployment Successful!'
+            echo '🌐 App URL: http://localhost:3001'
         }
         failure {
-            echo "❌ Deployment Failed"
+            echo '❌ Deployment Failed!'
         }
     }
 }
