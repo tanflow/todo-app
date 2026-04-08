@@ -3,12 +3,16 @@ FROM node:20 AS build
 
 WORKDIR /app
 
+# Copy only package files first (for caching)
 COPY package*.json ./
 
-RUN rm -rf node_modules package-lock.json && npm install
+# Use CI install (fast + reliable)
+RUN npm ci --legacy-peer-deps
 
+# Copy rest of code
 COPY . .
 
+# Build app
 RUN npm run build
 
 # Stage 2: Nginx
