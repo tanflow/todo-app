@@ -39,14 +39,10 @@ pipeline {
         }
 
         stage('Deploy on Ubuntu VM') {
-            steps {
-                bat """
-                ssh -p %VM_PORT% -i %SSH_KEY% %VM_USER%@%VM_HOST% ^
-                "docker stop %CONTAINER_NAME% || true && ^
-                 docker rm %CONTAINER_NAME% || true && ^
-                 docker load -i todo.tar && ^
-                 docker run -d -p 4000:80 --name %CONTAINER_NAME% %IMAGE_NAME%"
-                """
+    steps {
+        bat """
+        ssh -p %VM_PORT% -i %SSH_KEY% %VM_USER%@%VM_HOST% "docker stop %CONTAINER_NAME% || true && docker rm %CONTAINER_NAME% || true && docker load -i todo.tar && docker run -d -p 4000:80 --name %CONTAINER_NAME% %IMAGE_NAME%"
+        """
             }
         }
     }
