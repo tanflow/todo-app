@@ -4,14 +4,16 @@ pipeline {
     environment {
         IMAGE_NAME = "todo-app"
         CONTAINER_NAME = "todo-container"
-        PORT = "4000"
+        VM_USER = "raj"
+        VM_HOST = "localhost"
+        VM_PORT = "2222"
+        SSH_KEY = "C:\\Windows\\System32\\config\\systemprofile\\.ssh\\id_rsa"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                // ✅ Explicitly use main branch
                 git branch: 'main', url: 'https://github.com/tanflow/todo-app.git'
             }
         }
@@ -23,28 +25,40 @@ pipeline {
             }
         }
 
-        stage('Stop Old Container') {
+        stage('Save Image') {
             steps {
-                echo '🛑 Removing old container...'
+                echo '📦 Saving Docker Image...'
+                bat 'docker save -o todo-app.tar %IMAGE_NAME%'
+            }
+        }
+
+        stage('Transfer Image to VM') {
+            steps {
+                echo '📤 Sending image to VM...'
                 bat '''
-                docker stop %CONTAINER_NAME% || exit 0
-                docker rm %CONTAINER_NAME% || exit 0
+                scp -i %SSH_KEY% -P %VM_PORT% todo-app.tar %VM_USER%@%VM_HOST%:/tmp/
                 '''
             }
         }
 
-        stage('Run New Container') {
+        stage('Deploy on VM') {
             steps {
-                echo '🚀 Starting new container...'
-                bat 'docker run -d -p %PORT%:80 --name %CONTAINER_NAME% %IMAGE_NAME%'
+                echo '🚀 Deploying on VM...'
+                bat '''
+                ssh -i %SSH_KEY% -p %VM_PORT% %VM_USER%@%VM_HOST% "
+                docker stop %CONTAINER_NAME% || true &&
+                docker rm %CONTAINER_NAME% || true &&
+                docker load -i /tmp/todo-app.tar &&
+                docker run -d -p 80:80 --name %CONTAINER_NAME% %IMAGE_NAME%
+                "
+                '''
             }
         }
     }
 
     post {
         success {
-            echo '✅ Deployment Successful!'
-            echo '🌐 App URL: http://localhost:4000'
+            echo '✅ Deployment Successful on VM!'
         }
         failure {
             echo '❌ Deployment Failed!'
