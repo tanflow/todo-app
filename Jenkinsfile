@@ -5,7 +5,6 @@ pipeline {
         HOST = "localhost"
         PORT = "2222"
         USER = "raj"
-        APP_DIR = "todo-app"
         SSH_KEY = "C:\\Windows\\System32\\config\\systemprofile\\.ssh\\id_rsa"
     }
 
@@ -31,27 +30,32 @@ pipeline {
             }
         }
 
-        stage('Deploy to VM') {
+        stage('Deploy to Nginx (VM)') {
             steps {
-                echo "🚀 Deploying to VM..."
+                echo "🚀 Deploying to Nginx..."
 
-                timeout(time: 3, unit: 'MINUTES') {
+                timeout(time: 5, unit: 'MINUTES') {
 
                     bat """
                     echo ===== TESTING SSH CONNECTION =====
-                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "echo CONNECTED"
+                    ssh -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "echo CONNECTED"
 
-                    echo ===== CREATING APP DIRECTORY =====
-                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "mkdir -p ~/%APP_DIR%"
+                    echo ===== CLEANING OLD FILES =====
+                    ssh -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
+                    "sudo rm -rf /var/www/html/*"
 
-                    echo ===== REMOVING OLD BUILD =====
-                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "rm -rf ~/%APP_DIR%/dist"
+                    echo ===== COPYING NEW BUILD TO NGINX =====
+                    scp -i %SSH_KEY% -o StrictHostKeyChecking=no -P %PORT% -r dist/* %USER%@%HOST%:/tmp/
 
-                    echo ===== COPYING NEW BUILD =====
-                    scp -i %SSH_KEY% -o StrictHostKeyChecking=no -P %PORT% -r dist %USER%@%HOST%:~/%APP_DIR%/
+                    echo ===== MOVING FILES TO NGINX DIRECTORY =====
+                    ssh -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
+                    "sudo mv /tmp/* /var/www/html/ && sudo chown -R www-data:www-data /var/www/html"
 
-                    echo ===== RESTARTING APP WITH PM2 =====
-                    ssh -T -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% "export PATH=/home/raj/.nvm/versions/node/v24.14.1/bin:\$PATH && pm2 delete todo-app || true && pm2 start 'npx http-server -p 3000 -c-1 ~/%APP_DIR%/dist' --name todo-app && pm2 save"
+                    echo ===== RESTARTING NGINX =====
+                    ssh -i %SSH_KEY% -o StrictHostKeyChecking=no -p %PORT% %USER%@%HOST% ^
+                    "sudo systemctl restart nginx"
+
+                    echo ===== DEPLOYMENT DONE =====
                     """
                 }
             }
@@ -60,7 +64,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployment Successful 🚀"
+            echo "✅ Nginx Deployment Successful 🚀"
         }
         failure {
             echo "❌ Deployment Failed"
