@@ -12,7 +12,7 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/tanflow/todo-app.git'
             }
@@ -20,48 +20,34 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo '🐳 Building Docker Image...'
-                bat 'docker build -t %IMAGE_NAME% .'
+                bat "docker build -t %IMAGE_NAME% ."
             }
         }
 
-        stage('Save Image') {
+        stage('Save Docker Image') {
             steps {
-                echo '📦 Saving Docker Image...'
-                bat 'docker save -o todo-app.tar %IMAGE_NAME%'
+                bat "docker save %IMAGE_NAME% -o todo.tar"
             }
         }
 
         stage('Transfer Image to VM') {
             steps {
-                echo '📤 Sending image to VM...'
-                bat '''
-                scp -i %SSH_KEY% -P %VM_PORT% todo-app.tar %VM_USER%@%VM_HOST%:/tmp/
-                '''
+                bat """
+                scp -P %VM_PORT% -i %SSH_KEY% todo.tar %VM_USER%@%VM_HOST%:/home/%VM_USER%/
+                """
             }
         }
 
-        stage('Deploy on VM') {
+        stage('Deploy on Ubuntu VM') {
             steps {
-                echo '🚀 Deploying on VM...'
-                bat '''
-                ssh -i %SSH_KEY% -p %VM_PORT% %VM_USER%@%VM_HOST% "
-                docker stop %CONTAINER_NAME% || true &&
-                docker rm %CONTAINER_NAME% || true &&
-                docker load -i /tmp/todo-app.tar &&
-                docker run -d -p 80:80 --name %CONTAINER_NAME% %IMAGE_NAME%
-                "
-                '''
+                bat """
+                ssh -p %VM_PORT% -i %SSH_KEY% %VM_USER%@%VM_HOST% ^
+                "docker stop %CONTAINER_NAME% || true && ^
+                 docker rm %CONTAINER_NAME% || true && ^
+                 docker load -i todo.tar && ^
+                 docker run -d -p 4000:80 --name %CONTAINER_NAME% %IMAGE_NAME%"
+                """
             }
-        }
-    }
-
-    post {
-        success {
-            echo '✅ Deployment Successful on VM!'
-        }
-        failure {
-            echo '❌ Deployment Failed!'
         }
     }
 }
